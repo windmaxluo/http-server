@@ -18,6 +18,84 @@
 
 //
 #include <sys/sendfile.h>
+/*
+    get_content_type 函数
+    作用：处理文件后缀名和http协议请求头中Content-Type的映射关系
+    参数 1、文件名，例如/hua.png就知道是png对应image
+*/
+const char *get_content_type(const char *filename)
+{
+    // 从文件名中找到最后一个 '.'
+    const char *dot = strrchr(filename, '.');
+    if (!dot)
+        return "application/octet-stream"; // 没有后缀，按二进制流处理
+    // 比较后缀（不区分大小写可以用 strcasecmp）
+    if (strcmp(dot, ".html") == 0 || strcmp(dot, ".htm") == 0)
+        return "text/html";
+    if (strcmp(dot, ".png") == 0)
+        return "image/png";
+    if (strcmp(dot, ".jpg") == 0 || strcmp(dot, ".jpeg") == 0)
+        return "image/jpeg";
+    if (strcmp(dot, ".webp") == 0)
+        return "image/webp";
+    if (strcmp(dot, ".css") == 0)
+        return "text/css";
+    if (strcmp(dot, ".js") == 0)
+        return "application/javascript";
+    if (strcmp(dot, ".gif") == 0)
+        return "image/gif";
+    if (strcmp(dot, ".svg") == 0)
+        return "image/svg+xml";
+    if (strcmp(dot, ".pdf") == 0)
+        return "application/pdf";
+    if (strcmp(dot, ".txt") == 0)
+        return "text/plain";
+    // ... 可以继续扩展
+    return "application/octet-stream"; // 默认
+}
+
+/*
+    mysendfile 函数
+    作用：发送文件
+    参数：1、客户端套接字描述符，2、要发送的文件描述符，3、发送的文件类型 例如HTML对应text/html 图片对应image/webp等
+*/
+void mysendfile(int socket_fd, int file_fd, const char *content_type)
+{
+    // 成功打开，要传得文件大小
+    struct stat st;
+    fstat(file_fd, &st);
+    long total_size = st.st_size;
+
+    // 发送，先发响应头
+    char header[256];
+    snprintf(header, sizeof(header),
+             "HTTP/1.1 200 OK\r\n"
+             "Content-Type: %s\r\n"
+             "Content-Length: %ld\r\n"
+             "Connection: close\r\n"
+             "\r\n",
+             content_type, total_size);
+    send(socket_fd, header, strlen(header), 0);
+
+    // sendfile 零拷贝发送文件
+    // 偏移量参数传入/传出
+    off_t offset = 0;
+    ssize_t send_len;
+    long sent = 0;
+    while (sent < total_size)
+    {
+        // 一次最多发送BUF_SIZE
+        send_len = sendfile(socket_fd, file_fd, &offset, 4096);
+        if (send_len <= 0)
+        {
+            perror("sendfile");
+            break;
+        }
+        sent += send_len;
+        printf("\r已发送: %ld/%ld", sent, total_size);
+    }
+    printf("\n文件发送完毕\n");
+}
 
 int main(int argc, char const *argv[])
 {
@@ -91,7 +169,6 @@ int main(int argc, char const *argv[])
 
         // 方案二 使用sscanf
         char method[16], path[256], version[16];
-
         // 格式：%s 匹配连续非空字符（即GET），%s 匹配路径，%s 匹配HTTP/1.1
         if (sscanf(buf, "%15s %255s %15s", method, path, version) == 3)
         {
@@ -106,52 +183,82 @@ int main(int argc, char const *argv[])
 
             // 去掉路径开头的斜杠，得到文件名
             char *file_name = path;
-            if (file_name[0] == '/')
-                file_name++; // 跳过第一个 /
-            // 现在 file_name 就是 "hua.png"
-
-            int file_fd = open(file_name, O_RDONLY);
-            if (file_fd < 0)
+            if (strcmp(path, "/") == 0) // 无path纯ip+端口 http://192.168.121.130:9000
             {
-                perror("open error\n");
-                close(c_fd); // 关闭该客户端的连接
-                continue;
-            }
-
-            // 成功打开，要传得文件大小
-            struct stat st;
-            fstat(file_fd, &st);
-            long total_size = st.st_size;
-
-            // 发送，先发响应头
-            char header[256];
-            snprintf(header, sizeof(header),
-                     "HTTP/1.1 200 OK\r\n"
-                     "Content-Type: image/webp\r\n"
-                     "Content-Length: %ld\r\n"
-                     "Connection: close\r\n"
-                     "\r\n",
-                     total_size);
-            send(c_fd, header, strlen(header), 0);
-
-            // sendfile 零拷贝发送文件
-            // 偏移量参数传入/传出
-            off_t offset = 0;
-            ssize_t send_len;
-            long sent = 0;
-            while (sent < total_size)
-            {
-                // 一次最多发送BUF_SIZE
-                send_len = sendfile(c_fd, file_fd, &offset, 4096);
-                if (send_len <= 0)
+                int file_default_fd = open("index.html", O_RDONLY);
+                if (file_default_fd < 0)
                 {
-                    perror("sendfile");
-                    break;
+                    // 发送 404 给客户端，让浏览器知道文件不存在
+                    const char *not_found = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
+                    send(c_fd, not_found, strlen(not_found), 0);
+                    close(c_fd);
+                    continue; // 跳过本次循环
                 }
-                sent += send_len;
-                printf("\r已发送: %ld/%ld", sent, total_size);
+                mysendfile(c_fd, file_default_fd, "text/html");
+                close(file_default_fd);
             }
-            printf("\n文件发送完毕\n");
+
+            else if (file_name[0] == '/') // 有path http://192.168.121.130:9000/huli.png
+            {
+                file_name++; // 跳过第一个
+
+                // 防止http://192.168.121.130:9000/../../etc/passwd这种恶意访问
+                if (strstr(file_name, "..") != NULL)
+                {
+                    const char *forbidden = "HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n";
+                    send(c_fd, forbidden, strlen(forbidden), 0);
+                    close(c_fd);
+                    continue;
+                }
+
+                // 现在 file_name 就是 "hua.png"
+                int file_fd = open(file_name, O_RDONLY);
+                if (file_fd < 0)
+                {
+                    perror("open error\n");
+                    close(c_fd); // 关闭该客户端的连接
+                    continue;
+                }
+                const char *content_type = get_content_type(file_name);
+                mysendfile(c_fd, file_fd, content_type);
+                close(file_fd);
+            }
+
+            /* // 成功打开，要传得文件大小
+             struct stat st;
+             fstat(file_fd, &st);
+             long total_size = st.st_size;
+
+             // 发送，先发响应头
+             char header[256];
+             snprintf(header, sizeof(header),
+                      "HTTP/1.1 200 OK\r\n"
+                      "Content-Type: image/webp\r\n"
+                      "Content-Length: %ld\r\n"
+                      "Connection: close\r\n"
+                      "\r\n",
+                      total_size);
+             send(c_fd, header, strlen(header), 0);
+
+             // sendfile 零拷贝发送文件
+             // 偏移量参数传入/传出
+             off_t offset = 0;
+             ssize_t send_len;
+             long sent = 0;
+             while (sent < total_size)
+             {
+                 // 一次最多发送BUF_SIZE
+                 send_len = sendfile(c_fd, file_fd, &offset, 4096);
+                 if (send_len <= 0)
+                 {
+                     perror("sendfile");
+                     break;
+                 }
+                 sent += send_len;
+                 printf("\r已发送: %ld/%ld", sent, total_size);
+             }
+             printf("\n文件发送完毕\n");
+             */
         }
         close(c_fd);
     }
