@@ -18,10 +18,172 @@
 
 //
 #include <sys/sendfile.h>
+
+//
+#include <pthread.h>
+
+#define THREAD_NUM 4 // 线程池最大数量
+void *worker_routine(void *arg);
+void mysendfile(int socket_fd, int file_fd, const char *content_type);
+const char *get_content_type(const char *filename);
+
+// 任务节点
+typedef struct Task
+{
+    int client_fd; // 客户端套接字描述符
+    struct Task *next;
+} Task;
+
+// 线程池
+typedef struct ThreadPool
+{
+    Task *head;           // 任务队头
+    Task *tail;           // 任务队尾
+    pthread_mutex_t lock; // 互斥锁
+    pthread_cond_t cond;  // 条件变量
+
+    int shutdown; // 销毁标志
+} ThreadPool;
+
+ThreadPool pool;
+
+/*
+    thread_pool_init 函数
+    作用：初始化线程池
+    参数： 1、线程池结构体变量，2、线程池中线程的数量 THREAD_NUM
+*/
+void thread_pool_init(ThreadPool *pool, int num_threads)
+{
+    pthread_mutex_init(&pool->lock, NULL);
+    pthread_cond_init(&pool->cond, NULL);
+    pool->head = pool->tail = NULL;
+    pool->shutdown = 0;
+
+    for (int i = 0; i < num_threads; i++)
+    {
+        pthread_t tid;
+        pthread_create(&tid, NULL, worker_routine, (void *)pool);
+    }
+}
+/*
+    worker_routine 函数
+    作用：线程工作函数
+    参数：1、线程池结构体变量
+*/
+
+void *worker_routine(void *arg)
+{
+    ThreadPool *pool = (ThreadPool *)arg;
+    while (1)
+    {
+        pthread_mutex_lock(&pool->lock);
+        while (pool->head == NULL && !pool->shutdown)
+        {
+            pthread_cond_wait(&pool->cond, &pool->lock);
+        }
+        if (pool->shutdown)
+        {
+            pthread_mutex_unlock(&pool->lock);
+            pthread_exit(NULL);
+        }
+
+        // 取出队首任务
+        Task *task = pool->head;
+        pool->head = task->next;
+        if (pool->head == NULL)
+            pool->tail = NULL;
+        pthread_mutex_unlock(&pool->lock);
+
+        // ---- 处理该客户端请求 ----
+        int c_fd = task->client_fd;
+        char buf[4096] = {0};
+        ssize_t size = recv(c_fd, buf, sizeof(buf) - 1, 0);
+        if (size <= 0)
+        {
+            close(c_fd);
+            free(task);
+            continue;
+        }
+        // 从buf中处理请求头
+        // 使用sscanf
+        char method[16], path[256], version[16];
+        // 格式：%s 匹配连续非空字符（即GET），%s 匹配路径，%s 匹配HTTP/1.1
+        if (sscanf(buf, "%15s %255s %15s", method, path, version) != 3)
+        {
+            const char *not_found = "HTTP/1.1 400 Not Found\r\nContent-Length: 0\r\n\r\n";
+            send(c_fd, not_found, strlen(not_found), 0);
+            close(c_fd);
+            free(task);
+            continue;
+        }
+
+        printf("方法: %s\n", method);  // GET
+        printf("路径: %s\n", path);    // /hua.png?v=1
+        printf("版本: %s\n", version); // HTTP/1.1
+
+        // 接下来处理路径中的 ? 参数
+        char *qmark = strchr(path, '?');
+        if (qmark != NULL)
+            *qmark = '\0'; // 砍掉参数，留下纯净的 /hua.png 即/hua.png?v=1.0&size=100 -> /hua.png\0v=1.0&size=100 ->/hua.png
+
+        // 去掉路径开头的斜杠，得到文件名
+        char *file_name = path;
+        if (strcmp(path, "/") == 0) // 无path纯ip+端口 http://192.168.121.130:9000
+        {
+            int file_default_fd = open("index.html", O_RDONLY);
+            if (file_default_fd < 0)
+            {
+                // 发送 404 给客户端，让浏览器知道文件不存在
+                const char *not_found = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
+                send(c_fd, not_found, strlen(not_found), 0);
+                close(c_fd);
+                free(task);
+                continue;
+            }
+            mysendfile(c_fd, file_default_fd, "text/html");
+            close(file_default_fd);
+            close(c_fd);
+            free(task);
+            continue;
+        }
+
+        else if (file_name[0] == '/') // 有path http://192.168.121.130:9000/huli.png
+        {
+            file_name++; // 跳过第一个
+
+            // 防止http://192.168.121.130:9000/../../etc/passwd这种恶意访问
+            if (strstr(file_name, "..") != NULL)
+            {
+                const char *forbidden = "HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n";
+                send(c_fd, forbidden, strlen(forbidden), 0);
+                close(c_fd);
+                free(task);
+                continue;
+            }
+
+            // 现在 file_name 就是 "hua.png"
+            int file_fd = open(file_name, O_RDONLY);
+            if (file_fd < 0)
+            {
+                perror("open error\n");
+                close(c_fd); // 关闭该客户端的连接
+                free(task);
+                continue;
+            }
+            const char *content_type = get_content_type(file_name);
+            mysendfile(c_fd, file_fd, content_type);
+            close(file_fd);
+        }
+
+        close(c_fd);
+        free(task);
+    }
+}
+
 /*
     get_content_type 函数
     作用：处理文件后缀名和http协议请求头中Content-Type的映射关系
-    参数 1、文件名，例如/hua.png就知道是png对应image
+    参数： 1、文件名，例如/hua.png就知道是png对应image
 */
 const char *get_content_type(const char *filename)
 {
@@ -111,6 +273,9 @@ int main(int argc, char const *argv[])
     bind(fd, (struct sockaddr *)&addr, sizeof(addr));
 
     listen(fd, 9);
+
+    thread_pool_init(&pool, THREAD_NUM); // 初始化线程池
+
     printf("服务器准备就绪\n");
 
     char buf[4096]; // 足够存请求头 GET POST等
@@ -133,134 +298,38 @@ int main(int argc, char const *argv[])
 
         // 将客户端的信息ip，端口等信息写入addr_src结构体
         int c_fd = accept(fd, (struct sockaddr *)&addr_src, &len);
-
-        // 接收 GET POST 等信息都放入buf
-        ssize_t size = recv(c_fd, buf, 4096, 0);
-        // 端口号：从n网络字节序（大端）转h主机字节序（小端） ， short int
-        int port = ntohs(addr_src.sin_port);
-        // IP
-        char ip[INET_ADDRSTRLEN];
-        inet_ntop(AF_INET, &addr_src.sin_addr, ip, INET_ADDRSTRLEN);
-
-        printf("recv:%s,len=%ld, from:%s:%d\n", buf, size, ip, port);
-
-        // 从buf中处理请求头
-
-        /* 方案一 截取路径思路 GET /huli.png HTTP/1.1，有两个空格 纯指针，不够优雅
-        char buf_path[1024];
-        char *first = strchr(buf, '/'); // 找第一个/和第二个空格之间的 huli.png
-        char *second = strchr(first, ' ');
-        int len_path = second - first - 1; // 路径长度
-
-        strncpy(buf_path, first + 1, len_path);
-        buf_path[len_path] = '\0';
-
-        int file_fd = open(buf_path, O_RDONLY);
-        if (file_fd < 0)
+        if (c_fd < 0)
         {
-            perror("open file");
-            close(c_fd);
             continue;
         }
-        要传得文件大小
-        struct stat st;
-        fstat(file_fd, &st);
-        long total_size = st.st_size; */
 
-        // 方案二 使用sscanf
-        char method[16], path[256], version[16];
-        // 格式：%s 匹配连续非空字符（即GET），%s 匹配路径，%s 匹配HTTP/1.1
-        if (sscanf(buf, "%15s %255s %15s", method, path, version) == 3)
+        // // 接收 GET POST 等信息都放入buf
+        // ssize_t size = recv(c_fd, buf, 4096, 0);
+        // // 端口号：从n网络字节序（大端）转h主机字节序（小端） ， short int
+        // int port = ntohs(addr_src.sin_port);
+        // // IP
+        // char ip[INET_ADDRSTRLEN];
+        // inet_ntop(AF_INET, &addr_src.sin_addr, ip, INET_ADDRSTRLEN);
+
+        // printf("recv:%s,len=%ld, from:%s:%d\n", buf, size, ip, port);
+
+        // 创建任务
+        Task *task = (Task *)malloc(sizeof(Task));
+        task->client_fd = c_fd;
+        task->next = NULL;
+
+        pthread_mutex_lock(&pool.lock);
+        if (pool.tail)
         {
-            printf("方法: %s\n", method);  // GET
-            printf("路径: %s\n", path);    // /hua.png?v=1
-            printf("版本: %s\n", version); // HTTP/1.1
-
-            // 接下来处理路径中的 ? 参数
-            char *qmark = strchr(path, '?');
-            if (qmark != NULL)
-                *qmark = '\0'; // 砍掉参数，留下纯净的 /hua.png 即/hua.png?v=1.0&size=100 -> /hua.png\0v=1.0&size=100 ->/hua.png
-
-            // 去掉路径开头的斜杠，得到文件名
-            char *file_name = path;
-            if (strcmp(path, "/") == 0) // 无path纯ip+端口 http://192.168.121.130:9000
-            {
-                int file_default_fd = open("index.html", O_RDONLY);
-                if (file_default_fd < 0)
-                {
-                    // 发送 404 给客户端，让浏览器知道文件不存在
-                    const char *not_found = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
-                    send(c_fd, not_found, strlen(not_found), 0);
-                    close(c_fd);
-                    continue; // 跳过本次循环
-                }
-                mysendfile(c_fd, file_default_fd, "text/html");
-                close(file_default_fd);
-            }
-
-            else if (file_name[0] == '/') // 有path http://192.168.121.130:9000/huli.png
-            {
-                file_name++; // 跳过第一个
-
-                // 防止http://192.168.121.130:9000/../../etc/passwd这种恶意访问
-                if (strstr(file_name, "..") != NULL)
-                {
-                    const char *forbidden = "HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n";
-                    send(c_fd, forbidden, strlen(forbidden), 0);
-                    close(c_fd);
-                    continue;
-                }
-
-                // 现在 file_name 就是 "hua.png"
-                int file_fd = open(file_name, O_RDONLY);
-                if (file_fd < 0)
-                {
-                    perror("open error\n");
-                    close(c_fd); // 关闭该客户端的连接
-                    continue;
-                }
-                const char *content_type = get_content_type(file_name);
-                mysendfile(c_fd, file_fd, content_type);
-                close(file_fd);
-            }
-
-            /* // 成功打开，要传得文件大小
-             struct stat st;
-             fstat(file_fd, &st);
-             long total_size = st.st_size;
-
-             // 发送，先发响应头
-             char header[256];
-             snprintf(header, sizeof(header),
-                      "HTTP/1.1 200 OK\r\n"
-                      "Content-Type: image/webp\r\n"
-                      "Content-Length: %ld\r\n"
-                      "Connection: close\r\n"
-                      "\r\n",
-                      total_size);
-             send(c_fd, header, strlen(header), 0);
-
-             // sendfile 零拷贝发送文件
-             // 偏移量参数传入/传出
-             off_t offset = 0;
-             ssize_t send_len;
-             long sent = 0;
-             while (sent < total_size)
-             {
-                 // 一次最多发送BUF_SIZE
-                 send_len = sendfile(c_fd, file_fd, &offset, 4096);
-                 if (send_len <= 0)
-                 {
-                     perror("sendfile");
-                     break;
-                 }
-                 sent += send_len;
-                 printf("\r已发送: %ld/%ld", sent, total_size);
-             }
-             printf("\n文件发送完毕\n");
-             */
+            pool.tail->next = task;
+            pool.tail = task;
         }
-        close(c_fd);
+        else
+        {
+            pool.head = pool.tail = task;
+        }
+        pthread_cond_signal(&pool.cond);
+        pthread_mutex_unlock(&pool.lock);
     }
     close(fd);
     return 0;
