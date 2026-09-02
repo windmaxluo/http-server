@@ -22,6 +22,12 @@
 //
 #include <pthread.h>
 
+//
+#include <time.h>
+
+// 防崩
+#include <signal.h>
+
 #define THREAD_NUM 4 // 线程池最大数量
 void *worker_routine(void *arg);
 void mysendfile(int socket_fd, int file_fd, const char *content_type);
@@ -117,62 +123,187 @@ void *worker_routine(void *arg)
             continue;
         }
 
-        printf("方法: %s\n", method);  // GET
+        printf("方法: %s\n", method);  // GET POST
         printf("路径: %s\n", path);    // /hua.png?v=1
         printf("版本: %s\n", version); // HTTP/1.1
 
-        // 接下来处理路径中的 ? 参数
-        char *qmark = strchr(path, '?');
-        if (qmark != NULL)
-            *qmark = '\0'; // 砍掉参数，留下纯净的 /hua.png 即/hua.png?v=1.0&size=100 -> /hua.png\0v=1.0&size=100 ->/hua.png
-
-        // 去掉路径开头的斜杠，得到文件名
-        char *file_name = path;
-        if (strcmp(path, "/") == 0) // 无path纯ip+端口 http://192.168.121.130:9000
+        // GET
+        if (strcmp(method, "GET") == 0)
         {
-            int file_default_fd = open("index.html", O_RDONLY);
-            if (file_default_fd < 0)
+            // 接下来处理路径中的 ? 参数
+            char *qmark = strchr(path, '?');
+            if (qmark != NULL)
+                *qmark = '\0'; // 砍掉参数，留下纯净的 /hua.png 即/hua.png?v=1.0&size=100 -> /hua.png\0v=1.0&size=100 ->/hua.png
+
+            // 去掉路径开头的斜杠，得到文件名
+            char *file_name = path;
+            if (strcmp(path, "/") == 0) // 无path纯ip+端口 http://192.168.121.130:9000
             {
-                // 发送 404 给客户端，让浏览器知道文件不存在
-                const char *not_found = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
-                send(c_fd, not_found, strlen(not_found), 0);
+                int file_default_fd = open("index.html", O_RDONLY);
+                if (file_default_fd < 0)
+                {
+                    // 发送 404 给客户端，让浏览器知道文件不存在
+                    const char *not_found = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
+                    send(c_fd, not_found, strlen(not_found), 0);
+                    close(c_fd);
+                    free(task);
+                    continue;
+                }
+                mysendfile(c_fd, file_default_fd, "text/html");
+                close(file_default_fd);
                 close(c_fd);
                 free(task);
                 continue;
             }
-            mysendfile(c_fd, file_default_fd, "text/html");
-            close(file_default_fd);
-            close(c_fd);
-            free(task);
-            continue;
+
+            else if (file_name[0] == '/') // 有path http://192.168.121.130:9000/huli.png
+            {
+                file_name++; // 跳过第一个
+
+                // 防止http://192.168.121.130:9000/../../etc/passwd这种恶意访问
+                if (strstr(file_name, "..") != NULL)
+                {
+                    const char *forbidden = "HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n";
+                    send(c_fd, forbidden, strlen(forbidden), 0);
+                    close(c_fd);
+                    free(task);
+                    continue;
+                }
+
+                // 现在 file_name 就是 "hua.png"
+                int file_fd = open(file_name, O_RDONLY);
+                if (file_fd < 0)
+                {
+                    perror("open error\n");
+                    close(c_fd); // 关闭该客户端的连接
+                    free(task);
+                    continue;
+                }
+                const char *content_type = get_content_type(file_name);
+                mysendfile(c_fd, file_fd, content_type);
+                close(file_fd);
+            }
         }
 
-        else if (file_name[0] == '/') // 有path http://192.168.121.130:9000/huli.png
+        // POST
+        else if (strcmp(method, "POST") == 0)
         {
-            file_name++; // 跳过第一个
+            // 1. 查找 Content-Length 头部
+            char *cl = strstr(buf, "Content-Length: ");
+            if (cl == NULL)
+            {
+                const char *resp = "HTTP/1.1 411 Length Required\r\nContent-Length: 0\r\n\r\n";
+                send(c_fd, resp, strlen(resp), 0);
+                close(c_fd);
+                free(task);
+                continue;
+            }
+            long content_len = atol(cl + 16); // 跳过 "Content-Length: "
 
-            // 防止http://192.168.121.130:9000/../../etc/passwd这种恶意访问
+            // 2. 查找空行（请求体起始）
+            char *body_start = strstr(buf, "\r\n\r\n");
+            if (body_start == NULL)
+            {
+                const char *resp = "HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\n\r\n";
+                send(c_fd, resp, strlen(resp), 0);
+                close(c_fd);
+                free(task);
+                continue;
+            }
+            body_start += 4; // 跳过 \r\n\r\n
+
+            // 3. 计算已经读到的 body 字节数
+            long already = (buf + size) - body_start; // size 是 recv 返回的总字节数
+            if (already > content_len)
+                already = content_len; // 防止超出
+
+            // 4. 从路径中提取文件名+用时间戳（安全过滤后使用）
+            char *file_name = path; // path = "/upload/myphoto.jpg"
+            // 去掉开头的 '/'
+            if (file_name[0] == '/')
+                file_name++;
+
+            // 防止路径穿越（过滤 ..）
             if (strstr(file_name, "..") != NULL)
             {
-                const char *forbidden = "HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n";
-                send(c_fd, forbidden, strlen(forbidden), 0);
+                const char *resp = "HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n";
+                send(c_fd, resp, strlen(resp), 0);
                 close(c_fd);
                 free(task);
                 continue;
             }
 
-            // 现在 file_name 就是 "hua.png"
-            int file_fd = open(file_name, O_RDONLY);
-            if (file_fd < 0)
+            // 如果用户只写了 /upload/ 而没有文件名，可以回退到时间戳
+            if (strlen(file_name) == 0 || strcmp(file_name, "upload") == 0)
             {
-                perror("open error\n");
-                close(c_fd); // 关闭该客户端的连接
+                snprintf(file_name, sizeof(path) - 1, "upload_%ld.dat", time(NULL));
+            }
+            else
+            {
+                // 可以保留原始文件名，但建议只允许字母数字点，防止特殊字符
+                // 简单做法：直接使用，但过滤掉目录分隔符
+                char *p = file_name;
+                while (*p)
+                {
+                    if (*p == '/' || *p == '\\')
+                        *p = '_'; // 替换为下划线
+                    p++;
+                }
+            }
+
+            // 然后打开文件（指定路径，放在 uploads/ 目录下）
+            char full_path[512];
+            snprintf(full_path, sizeof(full_path), "uploads/%s", file_name);
+            int fd = open(full_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            if (fd < 0)
+            {
+                perror("open upload file");
+                const char *resp = "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n";
+                send(c_fd, resp, strlen(resp), 0);
+                close(c_fd);
                 free(task);
                 continue;
             }
-            const char *content_type = get_content_type(file_name);
-            mysendfile(c_fd, file_fd, content_type);
-            close(file_fd);
+
+            // 5. 写入已经收到的 body 部分
+            long total_written = 0;
+            if (already > 0)
+            {
+                ssize_t w = write(fd, body_start, already);
+                if (w > 0)
+                    total_written += w;
+            }
+
+            // 6. 循环接收剩余数据
+            while (total_written < content_len)
+            {
+                ssize_t n = recv(c_fd, buf, sizeof(buf), 0);
+                if (n <= 0)
+                    break; // 连接断开或出错
+                ssize_t w = write(fd, buf, n);
+                if (w > 0)
+                    total_written += w;
+            }
+
+            close(fd);
+
+            // 7. 返回成功响应
+            if (total_written == content_len)
+            {
+                const char *resp = "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
+                send(c_fd, resp, strlen(resp), 0);
+                printf("文件上传成功: %s (%ld bytes)\n", file_name, total_written);
+            }
+            else
+            {
+                const char *resp = "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n";
+                send(c_fd, resp, strlen(resp), 0);
+                printf("文件上传不完整: %ld/%ld\n", total_written, content_len);
+            }
+
+            close(c_fd);
+            free(task);
+            continue; // 处理完 POST 后回到线程循环
         }
 
         close(c_fd);
@@ -261,6 +392,8 @@ void mysendfile(int socket_fd, int file_fd, const char *content_type)
 
 int main(int argc, char const *argv[])
 {
+     signal(SIGPIPE, SIG_IGN);   // 让系统忽略 SIGPIPE，写错误会返回 -1，而不是杀进程
+
     int fd = socket(AF_INET, SOCK_STREAM, 0);
 
     // 服务器自身
