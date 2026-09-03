@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>极客工坊 · 音乐站</title>
+    <!-- Google Font & Font Awesome -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        /* ===== 全局重置 & 主题 ===== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0b0e1a;
+            color: #e0e6f0;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        /* 主卡片（音乐站风格） */
+        .card {
+            max-width: 1100px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.07);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 48px;
+            padding: 40px 35px;
+            box-shadow: 0 30px 50px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            color: #f0f3fa;
+        }
+
+        /* ===== 导航 ===== */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.15);
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        .logo {
+            font-size: 1.6rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00f0ff, #a855f7);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+        .logo i {
+            margin-right: 10px;
+            -webkit-text-fill-color: initial;
+            color: #00f0ff;
+        }
+        .nav-links a {
+            color: #b0c0d8;
+            text-decoration: none;
+            margin-left: 30px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: 0.3s;
+            border-bottom: 2px solid transparent;
+            padding-bottom: 4px;
+        }
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: #00f0ff;
+            border-bottom-color: #00f0ff;
+        }
+
+        /* ===== Hero ===== */
+        .hero {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        .hero h1 {
+            font-size: 3.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #a78bfa, #06b6d4);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+        }
+        .hero p {
+            font-size: 1.2rem;
+            color: #94a3b8;
+            max-width: 600px;
+            margin: 16px auto 0;
+            font-weight: 300;
+        }
+
+        /* ===== 特色卡片（主页的三张） ===== */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+        .feature-card {
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 28px;
+            padding: 30px 24px 24px;
+            transition: 0.3s ease;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        }
+        .feature-card:hover {
+            transform: translateY(-6px);
+            border-color: rgba(0, 240, 255, 0.3);
+            box-shadow: 0 12px 40px rgba(0, 240, 255, 0.08);
+        }
+        .feature-card .icon {
+            font-size: 2.4rem;
+            color: #00f0ff;
+            margin-bottom: 14px;
+        }
+        .feature-card h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .feature-card p {
+            color: #94a3b8;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+        .feature-card .tag {
+            display: inline-block;
+            margin-top: 16px;
+            font-size: 0.75rem;
+            background: rgba(0, 240, 255, 0.12);
+            padding: 4px 14px;
+            border-radius: 20px;
+            color: #00f0ff;
+            border: 1px solid rgba(0, 240, 255, 0.15);
+        }
+
+        /* ===== 音乐区（保留原音乐站布局） ===== */
+        .music-section {
+            margin-top: 20px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+        }
+        .music-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+        .music-header h1 {
+            font-size: 2.6rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #f6d365, #fda085);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+            margin: 0;
+        }
+        .sub {
+            font-size: 1rem;
+            color: #aab3d0;
+            border-left: 4px solid #f6d365;
+            padding-left: 16px;
+            opacity: 0.8;
+        }
+
+        .record-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0 30px;
+        }
+        .record {
+            width: 260px;
+            height: 260px;
+            border-radius: 50%;
+            object-fit: cover;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 0 8px rgba(255, 255, 255, 0.05), 0 0 0 12px rgba(0, 0, 0, 0.3);
+            transition: box-shadow 0.3s;
+            animation: spin 8s linear infinite;
+            animation-play-state: paused;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .record.playing {
+            animation-play-state: running;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 0 8px rgba(246, 211, 101, 0.3), 0 0 30px rgba(246, 211, 101, 0.2);
+        }
+
+        .media-box {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 32px;
+            padding: 20px 22px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            margin-top: 10px;
+        }
+        .media-box h3 {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 12px;
+            color: #cbd5f0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+        audio {
+            width: 100%;
+            border-radius: 16px;
+            outline: none;
+            background: #0b0e1a;
+        }
+
+        /* ===== 切歌列表 ===== */
+        .playlist {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px 16px;
+            margin-top: 16px;
+        }
+        .playlist button {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 30px;
+            padding: 8px 20px;
+            color: #cbd5f0;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: 0.3s;
+            font-family: inherit;
+        }
+        .playlist button:hover {
+            background: rgba(0, 240, 255, 0.15);
+            border-color: #00f0ff;
+            color: #00f0ff;
+        }
+        .playlist button.active-song {
+            background: rgba(0, 240, 255, 0.2);
+            border-color: #00f0ff;
+            color: #00f0ff;
+        }
+        .playlist button i {
+            margin-right: 6px;
+        }
+
+        /* ===== 页脚 ===== */
+        .footer {
+            margin-top: 40px;
+            font-size: 0.9rem;
+            color: #6c7a9e;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 22px;
+            letter-spacing: 0.3px;
+        }
+        .footer a {
+            color: #f6d365;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* ===== 移动端适配 ===== */
+        @media (max-width: 640px) {
+            body { padding: 10px; }
+            .card { padding: 24px 18px; }
+            .navbar { flex-direction: column; align-items: stretch; gap: 12px; }
+            .nav-links { display: flex; justify-content: space-around; }
+            .nav-links a { margin-left: 0; font-size: 0.85rem; }
+            .hero h1 { font-size: 2.2rem; }
+            .music-header h1 { font-size: 2rem; }
+            .record { width: 180px; height: 180px; }
+            .playlist button { padding: 6px 14px; font-size: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <!-- 导航 -->
+<nav class="navbar">
+    <div class="logo"><i class="fas fa-microchip"></i> GeekLab</div>
+    <div class="nav-links">
+        <a href="/html/index.html" class="active"><i class="fas fa-home"></i> 主页</a>
+        <a href="/html/about.html"><i class="fas fa-user-astronaut"></i> 介绍</a>
+        <a href="/html/works.html"><i class="fas fa-code"></i> 作品</a>
+        <a href="/html/data.html"><i class="fas fa-chart-line"></i> 数据</a>
+    </div>
+</nav>
+
+    <!-- Hero -->
+    <div class="hero">
+        <h1>构建 · 创造 · 连接</h1>
+        <p>用 C 语言打造的极客服务器，驱动硬件与互联网的边界。</p>
+    </div>
+
+    <!-- 三个特色卡片 -->
+    <div class="grid">
+        <div class="feature-card">
+            <div class="icon"><i class="fas fa-server"></i></div>
+            <h3>高性能 HTTP 服务</h3>
+            <p>基于线程池与零拷贝 <code>sendfile</code>，轻松处理并发请求，静态资源极速响应。</p>
+            <span class="tag">C / Socket</span>
+        </div>
+        <div class="feature-card">
+            <div class="icon"><i class="fas fa-microchip"></i></div>
+            <h3>硬件融合</h3>
+            <p>支持 ESP32-CAM 图像上传、STM32 传感器数据，打造属于你的物联网中枢。</p>
+            <span class="tag">IoT / 嵌入式</span>
+        </div>
+        <div class="feature-card">
+            <div class="icon"><i class="fas fa-rocket"></i></div>
+            <h3>极客美学</h3>
+            <p>暗色主题，霓虹点缀，响应式布局，让技术与视觉同时在线。</p>
+            <span class="tag">HTML / CSS</span>
+        </div>
+    </div>
+
+    <!-- ===== 音乐区（保留原“我的小天地”布局） ===== -->
+    <div class="music-section">
+        <div class="music-header">
+            <h1>🗺 我的小天地</h1>
+            <span class="sub">✨ 热爱 · 片刻</span>
+        </div>
+
+        <!-- 旋转唱片 -->
+        <div class="record-container">
+            <img src="/image/huli.png" alt="专辑封面" class="record" id="recordImage">
+        </div>
+
+        <!-- 音频控制 + 切歌列表 -->
+        <div class="media-box">
+            <h3><span>🎵</span> 背景音乐</h3>
+            <audio controls id="musicPlayer">
+                <source src="/music/tianya.mp3" type="audio/mpeg">
+                您的浏览器不支持 audio 标签。
+            </audio>
+
+            <!-- 切歌按钮列表 -->
+            <div class="playlist" id="playlist">
+                <!-- 由 JavaScript 动态生成，也可直接写死 -->
+            </div>
+        </div>
+
+        <!-- 页脚 -->
+        <div class="footer">
+            🚀 用 C 语言写的服务器 <br>
+            <span style="font-size:0.8rem; opacity:0.6;">图片来自本地 · 音乐请自行替换</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ===== 歌曲列表（可自行增删） =====
+        const songs = [
+            { name: '天涯', file: '/music/tianya.mp3', cover: '/image/huli.png' },
+            { name: '吹梦到西洲', file: '/music/chuimeng.mp3', cover: '/image/huli.png' },
+            { name: '伤心太平洋', file: '/music/shangxin.mp3', cover: '/image/huli.png' }
+            // 按需添加更多，cover 可更换不同图片
+        ];
+
+        const player = document.getElementById('musicPlayer');
+        const record = document.getElementById('recordImage');
+        const playlistContainer = document.getElementById('playlist');
+
+        let currentIndex = 0;
+
+        // 加载歌曲
+        function loadSong(index) {
+            const song = songs[index];
+            if (!song) return;
+            player.src = song.file;
+            record.src = song.cover;
+            // 更新激活样式
+            document.querySelectorAll('.playlist button').forEach((btn, i) => {
+                btn.classList.toggle('active-song', i === index);
+            });
+            // 自动播放（如果用户之前是播放状态，可保持）
+            // 这里不自动 play，等待用户点击播放
+            currentIndex = index;
+        }
+
+        // 生成歌单按钮
+        function renderPlaylist() {
+            playlistContainer.innerHTML = '';
+            songs.forEach((song, index) => {
+                const btn = document.createElement('button');
+                btn.innerHTML = `<i class="fas fa-music"></i> ${song.name}`;
+                btn.dataset.index = index;
+                btn.addEventListener('click', function() {
+                    loadSong(index);
+                    // 如果当前是播放状态，切换后继续播放
+                    if (!player.paused) {
+                        player.play();
+                    }
+                });
+                playlistContainer.appendChild(btn);
+            });
+            // 默认选中第一首
+            if (songs.length) {
+                loadSong(0);
+                // 高亮第一首
+                const firstBtn = playlistContainer.querySelector('button');
+                if (firstBtn) firstBtn.classList.add('active-song');
+            }
+        }
+
+        // 监听播放/暂停控制旋转
+        player.addEventListener('play', function() {
+            record.classList.add('playing');
+        });
+        player.addEventListener('pause', function() {
+            record.classList.remove('playing');
+        });
+        player.addEventListener('ended', function() {
+            record.classList.remove('playing');
+            // 自动播下一首（可选）
+            // let next = (currentIndex + 1) % songs.length;
+            // loadSong(next);
+            // player.play();
+        });
+
+        // 初始化歌单
+        renderPlaylist();
+    })();
+</script>
+
+</body>
+</html>

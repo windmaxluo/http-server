@@ -139,7 +139,7 @@ void *worker_routine(void *arg)
             char *file_name = path;
             if (strcmp(path, "/") == 0) // 无path纯ip+端口 http://192.168.121.130:9000
             {
-                int file_default_fd = open("index.html", O_RDONLY);
+                int file_default_fd = open("html/index.html", O_RDONLY);
                 if (file_default_fd < 0)
                 {
                     // 发送 404 给客户端，让浏览器知道文件不存在

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>作品 · 极客工坊</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0b0e1a;
+            color: #e0e6f0;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 50px;
+            background: rgba(11, 14, 26, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(0, 255, 255, 0.15);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .logo {
+            font-size: 1.6rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00f0ff, #a855f7);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+        .logo i {
+            margin-right: 10px;
+            -webkit-text-fill-color: initial;
+            color: #00f0ff;
+        }
+        .nav-links a {
+            color: #b0c0d8;
+            text-decoration: none;
+            margin-left: 30px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: 0.3s;
+            border-bottom: 2px solid transparent;
+            padding-bottom: 4px;
+        }
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: #00f0ff;
+            border-bottom-color: #00f0ff;
+        }
+        .container {
+            flex: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 60px 30px 40px;
+            width: 100%;
+        }
+        .page-title {
+            font-size: 2.2rem;
+            margin-bottom: 40px;
+            background: linear-gradient(135deg, #a78bfa, #06b6d4);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+        }
+        .project {
+            background: rgba(255,255,255,0.03);
+            border-radius: 24px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: 0.3s;
+        }
+        .project:hover {
+            transform: translateY(-6px);
+            border-color: rgba(0, 240, 255, 0.2);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+        }
+        .project .thumb {
+            height: 160px;
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3.4rem;
+            color: #334155;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .project .info {
+            padding: 20px 22px 24px;
+        }
+        .project .info h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        .project .info p {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        .project .info .tech {
+            margin-top: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .project .info .tech span {
+            background: rgba(0, 240, 255, 0.08);
+            border: 1px solid rgba(0, 240, 255, 0.08);
+            padding: 2px 12px;
+            border-radius: 14px;
+            font-size: 0.7rem;
+            color: #00f0ff;
+        }
+        .footer {
+            text-align: center;
+            padding: 30px 20px;
+            color: #475569;
+            font-size: 0.85rem;
+            border-top: 1px solid rgba(255,255,255,0.04);
+            margin-top: 40px;
+        }
+        @media (max-width: 640px) {
+            .navbar { padding: 16px 20px; flex-wrap: wrap; }
+            .nav-links { margin-top: 10px; width: 100%; display: flex; justify-content: space-around; }
+            .nav-links a { margin-left: 0; font-size: 0.85rem; }
+            .container { padding: 30px 16px; }
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar">
+    <div class="logo"><i class="fas fa-microchip"></i> GeekLab</div>
+    <div class="nav-links">
+        <a href="/html/index.html"><i class="fas fa-home"></i> 主页</a>
+        <a href="/html/about.html"><i class="fas fa-user-astronaut"></i> 介绍</a>
+        <a href="/html/works.html" class="active"><i class="fas fa-code"></i> 作品</a>   <!-- 这里 -->
+        <a href="/html/data.html"><i class="fas fa-chart-line"></i> 数据</a>
+    </div>
+</nav>
+
+    <div class="container">
+        <h1 class="page-title"><i class="fas fa-project-diagram"></i> 作品集</h1>
+        <div class="grid">
+            <div class="project">
+                <div class="thumb"><i class="fas fa-server"></i></div>
+                <div class="info">
+                    <h3>HTTP 静态服务器</h3>
+                    <p>基于 C + 线程池 + sendfile 的高性能服务器，支持 GET/POST，日志与安全防护。</p>
+                    <div class="tech"><span>C</span><span>Socket</span><span>pthread</span></div>
+                </div>
+            </div>
+            <div class="project">
+                <div class="thumb"><i class="fas fa-camera"></i></div>
+                <div class="info">
+                    <h3>ESP32-CAM 图像上传</h3>
+                    <p>通过 HTTP POST 将拍摄的 JPEG 图片上传至服务器，实现远程监控。</p>
+                    <div class="tech"><span>ESP32</span><span>HTTP</span><span>IoT</span></div>
+                </div>
+            </div>
+            <div class="project">
+                <div class="thumb"><i class="fas fa-thermometer-half"></i></div>
+                <div class="info">
+                    <h3>STM32 数据采集</h3>
+                    <p>STM32 读取温湿度传感器，通过 POST 上报数据，服务器存档并展示。</p>
+                    <div class="tech"><span>STM32</span><span>I2C</span><span>UART</span></div>
+                </div>
+            </div>
+            <div class="project">
+                <div class="thumb"><i class="fas fa-code-branch"></i></div>
+                <div class="info">
+                    <h3>极客风格个人站</h3>
+                    <p>暗色 UI，响应式布局，融合硬件数据可视化，打造技术品牌。</p>
+                    <div class="tech"><span>HTML5</span><span>CSS3</span><span>JS</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <i class="fas fa-code"></i> 用 ❤️ 和 C 语言构建 · 开放源码
+    </div>
+</body>
+</html>

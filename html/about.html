@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>关于 · 极客工坊</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0b0e1a;
+            color: #e0e6f0;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 50px;
+            background: rgba(11, 14, 26, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(0, 255, 255, 0.15);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .logo {
+            font-size: 1.6rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00f0ff, #a855f7);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+        .logo i {
+            margin-right: 10px;
+            -webkit-text-fill-color: initial;
+            color: #00f0ff;
+        }
+        .nav-links a {
+            color: #b0c0d8;
+            text-decoration: none;
+            margin-left: 30px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: 0.3s;
+            border-bottom: 2px solid transparent;
+            padding-bottom: 4px;
+        }
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: #00f0ff;
+            border-bottom-color: #00f0ff;
+        }
+        .container {
+            flex: 1;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 60px 30px 40px;
+            width: 100%;
+        }
+        .profile {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 50px;
+            align-items: center;
+            margin-bottom: 60px;
+        }
+        .avatar {
+            flex: 0 0 160px;
+            text-align: center;
+        }
+        .avatar i {
+            font-size: 8rem;
+            color: #a855f7;
+            opacity: 0.7;
+            background: rgba(168, 85, 247, 0.08);
+            border-radius: 50%;
+            padding: 20px;
+            border: 2px solid rgba(168, 85, 247, 0.2);
+        }
+        .bio h1 {
+            font-size: 2.6rem;
+            background: linear-gradient(135deg, #a78bfa, #06b6d4);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        .bio p {
+            font-size: 1.05rem;
+            color: #94a3b8;
+            line-height: 1.7;
+            max-width: 600px;
+        }
+        .skills {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin: 40px 0 30px;
+        }
+        .skill-card {
+            background: rgba(255,255,255,0.03);
+            border-radius: 16px;
+            padding: 20px 16px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.04);
+            transition: 0.3s;
+        }
+        .skill-card:hover {
+            border-color: rgba(0, 240, 255, 0.2);
+            background: rgba(0, 240, 255, 0.04);
+        }
+        .skill-card i {
+            font-size: 2.4rem;
+            color: #00f0ff;
+            margin-bottom: 10px;
+        }
+        .skill-card span {
+            display: block;
+            font-weight: 500;
+            font-size: 1rem;
+        }
+        .quote {
+            border-left: 4px solid #a855f7;
+            padding: 18px 24px;
+            background: rgba(168, 85, 247, 0.04);
+            border-radius: 0 16px 16px 0;
+            margin: 30px 0;
+            color: #c4b5d4;
+            font-style: italic;
+        }
+        .footer {
+            text-align: center;
+            padding: 30px 20px;
+            color: #475569;
+            font-size: 0.85rem;
+            border-top: 1px solid rgba(255,255,255,0.04);
+            margin-top: 40px;
+        }
+        @media (max-width: 640px) {
+            .navbar { padding: 16px 20px; flex-wrap: wrap; }
+            .nav-links { margin-top: 10px; width: 100%; display: flex; justify-content: space-around; }
+            .nav-links a { margin-left: 0; font-size: 0.85rem; }
+            .profile { flex-direction: column; align-items: center; }
+            .bio { text-align: center; }
+            .container { padding: 30px 16px; }
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar">
+    <div class="logo"><i class="fas fa-microchip"></i> GeekLab</div>
+    <div class="nav-links">
+        <a href="/html/index.html"><i class="fas fa-home"></i> 主页</a>
+        <a href="/html/about.html" class="active"><i class="fas fa-user-astronaut"></i> 介绍</a>   <!-- 这里 -->
+        <a href="/html/works.html"><i class="fas fa-code"></i> 作品</a>
+        <a href="/html/data.html"><i class="fas fa-chart-line"></i> 数据</a>
+    </div>
+</nav>
+
+    <div class="container">
+        <div class="profile">
+            <div class="avatar">
+                <i class="fas fa-user-astronaut"></i>
+            </div>
+            <div class="bio">
+                <h1>你好，我是 罗过海</h1>
+                <p>嵌入式与网络编程爱好者，喜欢用 C 语言搭建高性能服务，将硬件与互联网融合。坚信极简、高效、开放是技术的本色。</p>
+            </div>
+        </div>
+
+        <div class="skills">
+            <div class="skill-card"><i class="fab fa-cuttlefish"></i><span>C / C++</span></div>
+            <div class="skill-card"><i class="fas fa-code"></i><span>Socket 编程</span></div>
+            <div class="skill-card"><i class="fas fa-microchip"></i><span>ESP32 / STM32</span></div>
+            <div class="skill-card"><i class="fas fa-terminal"></i><span>Linux / 系统</span></div>
+            <div class="skill-card"><i class="fas fa-cloud-upload-alt"></i><span>HTTP / IoT</span></div>
+        </div>
+
+        <div class="quote">
+            <i class="fas fa-quote-left" style="color:#a855f7; margin-right:10px;"></i>
+            写代码就像修路，既要稳，也要美。每一行都是通往自由创造的基石。
+        </div>
+
+        <p style="color:#94a3b8; font-size:0.95rem; margin-top:20px;">
+            目前专注于轻量级 HTTP 服务器、嵌入式设备数据采集与可视化，乐于分享与开源。
+        </p>
+    </div>
+
+    <div class="footer">
+        <i class="fas fa-code"></i> 用 ❤️ 和 C 语言构建 · 开放源码
+    </div>
+</body>
+</html>

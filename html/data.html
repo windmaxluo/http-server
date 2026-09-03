@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据 · 极客工坊</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0b0e1a;
+            color: #e0e6f0;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 50px;
+            background: rgba(11, 14, 26, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(0, 255, 255, 0.15);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .logo {
+            font-size: 1.6rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00f0ff, #a855f7);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+        .logo i {
+            margin-right: 10px;
+            -webkit-text-fill-color: initial;
+            color: #00f0ff;
+        }
+        .nav-links a {
+            color: #b0c0d8;
+            text-decoration: none;
+            margin-left: 30px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: 0.3s;
+            border-bottom: 2px solid transparent;
+            padding-bottom: 4px;
+        }
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: #00f0ff;
+            border-bottom-color: #00f0ff;
+        }
+        .container {
+            flex: 1;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 60px 30px 40px;
+            width: 100%;
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+        .card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 28px;
+            padding: 28px 24px 24px;
+            backdrop-filter: blur(4px);
+        }
+        .card h2 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .card h2 i {
+            color: #00f0ff;
+        }
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .sensor-item {
+            background: rgba(0,0,0,0.2);
+            border-radius: 20px;
+            padding: 18px 16px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.03);
+        }
+        .sensor-item .label {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .sensor-item .value {
+            font-size: 2rem;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+            margin: 6px 0;
+        }
+        .sensor-item .unit {
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+        .temp { color: #f97316; }
+        .humi { color: #38bdf8; }
+        .image-placeholder {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: #1e293b;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #475569;
+            font-size: 3rem;
+            border: 1px dashed rgba(255,255,255,0.06);
+            margin-top: 12px;
+            overflow: hidden;
+        }
+        .image-placeholder img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .update-time {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-top: 12px;
+            text-align: right;
+            border-top: 1px solid rgba(255,255,255,0.03);
+            padding-top: 12px;
+        }
+        .footer {
+            text-align: center;
+            padding: 30px 20px;
+            color: #475569;
+            font-size: 0.85rem;
+            border-top: 1px solid rgba(255,255,255,0.04);
+            margin-top: 40px;
+        }
+        @media (max-width: 760px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            .navbar { padding: 16px 20px; flex-wrap: wrap; }
+            .nav-links { margin-top: 10px; width: 100%; display: flex; justify-content: space-around; }
+            .nav-links a { margin-left: 0; font-size: 0.85rem; }
+            .container { padding: 30px 16px; }
+            .sensor-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar">
+    <div class="logo"><i class="fas fa-microchip"></i> GeekLab</div>
+    <div class="nav-links">
+        <a href="/html/index.html"><i class="fas fa-home"></i> 主页</a>
+        <a href="/html/about.html"><i class="fas fa-user-astronaut"></i> 介绍</a>
+        <a href="/html/works.html"><i class="fas fa-code"></i> 作品</a>
+        <a href="/html/data.html" class="active"><i class="fas fa-chart-line"></i> 数据</a>   <!-- 这里 -->
+    </div>
+</nav>
+
+    <div class="container">
+        <h1 style="font-size:2rem; background:linear-gradient(135deg,#a78bfa,#06b6d4); -webkit-background-clip:text;background-clip: text; -webkit-text-fill-color:transparent; display:inline-block;">
+            <i class="fas fa-microchip" style="-webkit-text-fill-color:initial; color:#00f0ff;"></i> 硬件数据看板
+        </h1>
+        <p style="color:#94a3b8; margin-top:8px;">实时接收来自 ESP32 / STM32 的传感器数据与图像</p>
+
+        <div class="grid-2">
+            <!-- 温湿度卡片 -->
+            <div class="card">
+                <h2><i class="fas fa-thermometer-half"></i> 环境数据</h2>
+                <div class="sensor-grid">
+                    <div class="sensor-item">
+                        <div class="label"><i class="fas fa-temperature-high"></i> 温度</div>
+                        <div class="value temp" id="tempValue">24.6</div>
+                        <div class="unit">°C</div>
+                    </div>
+                    <div class="sensor-item">
+                        <div class="label"><i class="fas fa-tint"></i> 湿度</div>
+                        <div class="value humi" id="humiValue">58.2</div>
+                        <div class="unit">%RH</div>
+                    </div>
+                </div>
+                <div class="update-time" id="updateTime">最后更新: 刚刚</div>
+            </div>
+
+            <!-- 图像卡片 -->
+            <div class="card">
+                <h2><i class="fas fa-camera"></i> 最新图像</h2>
+                <div class="image-placeholder" id="imageContainer">
+                    <i class="fas fa-image"></i>
+                </div>
+                <div class="update-time" id="imageTime">等待上传...</div>
+            </div>
+        </div>
+
+        <div style="margin-top:20px; padding:16px; background:rgba(0,240,255,0.03); border-radius:16px; border:1px solid rgba(0,240,255,0.06);">
+            <p style="color:#94a3b8; font-size:0.9rem; display:flex; align-items:center; gap:12px;">
+                <i class="fas fa-sync-alt fa-spin" style="color:#00f0ff;"></i>
+                数据模拟更新中 · 实际部署时由硬件 POST 上传
+            </p>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // 模拟温湿度随机变化
+            const tempEl = document.getElementById('tempValue');
+            const humiEl = document.getElementById('humiValue');
+            const timeEl = document.getElementById('updateTime');
+            const imgContainer = document.getElementById('imageContainer');
+
+            function updateSensor() {
+                const temp = (20 + Math.random() * 8).toFixed(1);
+                const humi = (45 + Math.random() * 20).toFixed(1);
+                tempEl.textContent = temp;
+                humiEl.textContent = humi;
+                const now = new Date();
+                timeEl.textContent = `最后更新: ${now.toLocaleTimeString()}`;
+            }
+
+            // 图像
+function updateImage() {
+    // 显示静态占位内容，不再请求外部图片
+    imgContainer.innerHTML = `
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#64748b; font-size:1.2rem; padding:20px;">
+            <i class="fas fa-camera" style="font-size:3rem; margin-bottom:10px; color:#475569;"></i>
+            <span>📸 图像上传功能开发中</span>
+            <span style="font-size:0.8rem; margin-top:6px; color:#475569;">等待 ESP32-CAM 接入</span>
+        </div>
+    `;
+    document.getElementById('imageTime').textContent = `状态: 模拟占位 · ${new Date().toLocaleTimeString()}`;
+}
+
+            // 初始值
+            updateSensor();
+            updateImage();
+
+            // 定时刷新（模拟实时）
+            setInterval(updateSensor, 3000);
+            setInterval(updateImage, 8000);
+        })();
+    </script>
+
+    <div class="footer">
+        <i class="fas fa-code"></i> 用 ❤️ 和 C 语言构建 · 开放源码
+    </div>
+</body>
+</html>
